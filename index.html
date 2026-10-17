@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flying Love Heart</title>
+    <title>Perfect Love Heart</title>
     <style>
         body {
-            background-color: #050505; /* พื้นหลังสีดำ */
+            background-color: #050505;
             margin: 0;
             overflow: hidden;
+            height: 100vh;
+            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         #heart-container {
             position: relative;
@@ -22,16 +22,14 @@
         }
         .text-word {
             position: absolute;
-            color: #ff3333; /* สีแดง */
-            text-shadow: 0 0 5px #ff0000; /* เรืองแสง */
-            opacity: 0;
+            color: #ff3333;
+            text-shadow: 0 0 3px #ff0000;
+            opacity: 0; /* เริ่มต้นด้วยการโปร่งใส */
             white-space: nowrap;
-            pointer-events: none;
             font-weight: bold;
-            transform: translate(-50%, -50%);
-            /* เพิ่ม transition เพื่อให้เคลื่อนไหวและปรากฏอย่างนุ่มนวล */
-            transition: transform 1.8s cubic-bezier(0.19, 1, 0.22, 1), 
-                        opacity 1.5s ease-out;
+            transition: opacity 1s ease-in-out; /* แอนิเมชันตอนค่อยๆ สว่างขึ้น */
+            pointer-events: none;
+            transform: translateY(-50%); /* จัดให้อยู่กึ่งกลางบรรทัดพอดี */
         }
     </style>
 </head>
@@ -42,138 +40,98 @@
         const phrases = [
             "Ich liebe dich", "Ti amo", "愛してる", "Aku cinta kamu",
             "ฉันรักเธอ", "Te amo", "Je t'aime", "사랑해",
-            "Jag älskar dig", "Я тебя люблю", "Σ' αγาπώ", "Anh yêu em",
-            "Ik hou van jou", "I love you", "Seni seviyorum", "Kocham cię",
-            "รักเธอ", "คิดถึงเธอ", "รักนะ", "Miss you"
+            "Jag älskar dig", "Я тебя люблю", "Σ' αγαπώ", "Anh yêu em",
+            "Ik hou van jou", "I love you", "Seni seviyorum", "Kocham cię"
         ];
 
         const container = document.getElementById('heart-container');
-        let centerX = window.innerWidth / 2;
-        let centerY = window.innerHeight / 2;
         
-        // ขนาดของหัวใจ
-        const scale = 230; 
-        const maxWords = 280; // จำนวนคำที่เหมาะสมเพื่อให้ไม่เบียดกันเกินไป
-
-        // Array สำหรับเก็บพิกัดของคำที่ถูกวางไปแล้ว เพื่อไม่ให้ทับกัน
-        const placedWords = [];
-
-        // ฟังก์ชันตรวจหาการชน/ทับซ้อน (Overlap)
-        function isOverlapping(x, y, width, height) {
-            const paddingX = 12; // ระยะห่างขั้นต่ำแนวนอน
-            const paddingY = 8;  // ระยะห่างขั้นต่ำแนวตั้ง
-
-            for (let word of placedWords) {
-                if (
-                    x < word.x + word.width + paddingX &&
-                    x + width + paddingX > word.x &&
-                    y < word.y + word.height + paddingY &&
-                    y + height + paddingY > word.y
-                ) {
-                    return true; // เกิดการทับซ้อน
-                }
-            }
-            return false;
-        }
-
-        // สุ่มหาตำแหน่งที่เหมาะสมภายในรูปทรงหัวใจ
-        function getHeartTargetPosition(text, fontSize) {
-            // สร้าง element จำลองเพื่อใช้วัดขนาดคำจริง
-            const span = document.createElement('span');
-            span.style.fontSize = fontSize;
-            span.style.visibility = 'hidden';
-            span.style.position = 'absolute';
-            span.innerText = text;
-            document.body.appendChild(span);
+        function drawHeart() {
+            container.innerHTML = ''; // ล้างค่าเดิมเผื่อมีการรีเฟรช
             
-            const width = span.offsetWidth;
-            const height = span.offsetHeight;
-            document.body.removeChild(span);
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            const scale = 220; // ปรับขนาดของหัวใจตรงนี้
+            const rowHeight = 20; // ระยะห่างระหว่างบรรทัด (แกน Y)
+            const paddingX = 6; // ระยะห่างระหว่างคำ (แกน X)
+            
+            let delay = 0;
+            const delayStep = 30; // ความเร็วในการปรากฏทีละคำ (มิลลิวินาที)
 
-            let x, y, screenX, screenY;
-            let attempts = 0;
-            const maxAttempts = 1200; // พยายามหาพื้นที่ว่าง
+            // กำหนดขอบเขตการวาด (Bounding Box) ประมาณ -1.5 ถึง 1.5 ของสมการ
+            const boxSize = 3 * scale;
+            const startY = centerY - boxSize / 2;
+            const endY = centerY + boxSize / 2;
+            const startX = centerX - boxSize / 2;
+            const endX = centerX + boxSize / 2;
 
-            while (attempts < maxAttempts) {
-                // สุ่มจุด x, y ให้อยู่ในขอบเขตกล่องรูปหัวใจ
-                const targetX = (Math.random() * 3) - 1.5;
-                const targetY = (Math.random() * 3) - 1.5;
+            // สแกนพื้นที่จากบนลงล่าง (ทีละบรรทัด)
+            for (let sy = startY; sy < endY; sy += rowHeight) {
+                let sx = startX;
+                
+                // สแกนพื้นที่จากซ้ายไปขวา
+                while (sx < endX) {
+                    // แปลงพิกัดหน้าจอ (sx, sy) เป็นพิกัดสำหรับสมการคณิตศาสตร์ (mx, my)
+                    const mx = (sx - centerX) / scale;
+                    const my = -(sy - centerY) / scale; // ต้องติดลบเพราะแกน Y ของจอคอมพิวเตอร์กลับหัวกับกราฟคณิตศาสตร์
 
-                // สมการทางคณิตศาสตร์รูปหัวใจ (Heart Equation)
-                if (Math.pow(targetX*targetX + targetY*targetY - 1, 3) - (targetX*targetX * Math.pow(targetY, 3)) <= 0) {
-                    // แปลงพิกัดทางคณิตศาสตร์เป็นพิกัดหน้าจอ
-                    screenX = centerX + (targetX * scale);
-                    screenY = centerY + (-targetY * scale); // กลับแกน Y สำหรับจอภาพ
-
-                    // ตรวจสอบว่าไม่ทับซ้อนกับคำที่มีอยู่แล้ว
-                    if (!isOverlapping(screenX - width/2, screenY - height/2, width, height)) {
-                        const newWord = {
-                            x: screenX - width/2,
-                            y: screenY - height/2,
-                            width: width,
-                            height: height
-                        };
-                        placedWords.push(newWord);
-                        return { x: screenX, y: screenY };
+                    // เช็คว่าพิกัดนี้อยู่ในสมการรูปหัวใจหรือไม่: (x² + y² - 1)³ - x²y³ ≤ 0
+                    if (Math.pow(mx * mx + my * my - 1, 3) - (mx * mx * Math.pow(my, 3)) <= 0) {
+                        
+                        // สุ่มคำ
+                        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+                        
+                        // สร้าง Element เพื่อวัดความกว้างของคำก่อนนำไปวางจริง
+                        const el = document.createElement('div');
+                        el.className = 'text-word';
+                        el.innerText = phrase;
+                        
+                        // สุ่มขนาดฟอนต์ให้ดูมีมิติเล็กน้อย (12px ถึง 15px)
+                        const fontSize = 12 + Math.random() * 3;
+                        el.style.fontSize = `${fontSize}px`;
+                        
+                        // ซ่อนไว้ก่อนเพื่อใช้วัดขนาด
+                        el.style.visibility = 'hidden';
+                        document.body.appendChild(el);
+                        const wordWidth = el.offsetWidth;
+                        document.body.removeChild(el);
+                        
+                        // กำหนดตำแหน่งที่แน่นอน
+                        el.style.visibility = 'visible';
+                        el.style.left = `${sx}px`;
+                        el.style.top = `${sy}px`;
+                        
+                        // ใช้ setTimeout เพื่อสร้างเอฟเฟกต์ "ค่อยๆ เต็ม"
+                        setTimeout(() => {
+                            container.appendChild(el);
+                            // ให้เบราว์เซอร์รับรู้การสร้าง element ก่อน ค่อยสั่งเปลี่ยน opacity เป็น 1 เพื่อให้ transition ทำงาน
+                            requestAnimationFrame(() => {
+                                el.style.opacity = '1';
+                            });
+                        }, delay);
+                        
+                        delay += delayStep;
+                        
+                        // ขยับจุดตรวจจับไปทางขวา เท่ากับความกว้างของคำที่เพิ่งวาง + ระยะห่าง 
+                        // เพื่อให้คำต่อไปอยู่ต่อท้ายพอดี ไม่ทับกัน
+                        sx += wordWidth + paddingX;
+                    } else {
+                        // ถ้าไม่อยู่ในรูปหัวใจ ให้ขยับจุดตรวจจับไปทางขวาทีละนิดเพื่อหาขอบหัวใจ
+                        sx += 5;
                     }
                 }
-                attempts++;
             }
-            return null; // หากไม่มีที่ว่างแล้ว
         }
 
-        // ฟังก์ชันสร้างและเริ่มแอนิเมชันของแต่ละคำ
-        function spawnWord(index) {
-            const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-            const fontSize = `${Math.floor(Math.random() * 6) + 11}px`; // ขนาดฟอนต์ 11px - 16px
+        // วาดหัวใจเมื่อเปิดหน้าเว็บ
+        drawHeart();
 
-            const targetPos = getHeartTargetPosition(phrase, fontSize);
-            if (!targetPos) return; // ข้ามหากไม่มีพื้นที่เหลือแล้ว
-
-            const textEl = document.createElement('div');
-            textEl.className = 'text-word';
-            textEl.style.fontSize = fontSize;
-            textEl.innerText = phrase;
-
-            // 1. สุ่มตำแหน่งเริ่มต้นจากด้านนอก (จากข้างๆ จอ)
-            const fromLeft = Math.random() < 0.5; // สุ่มว่าจะมาจากซ้ายหรือขวา
-            let startX, startY;
-
-            if (fromLeft) {
-                startX = -150 - (Math.random() * 200); // ด้านซ้ายนอกจอ
-            } else {
-                startX = window.innerWidth + 150 + (Math.random() * 200); // ด้านขวานอกจอ
-            }
-            
-            // สุ่มความสูงกระจายทั่วหน้าจอ
-            startY = Math.random() * window.innerHeight;
-
-            // กำหนดพิกัดเริ่มต้นให้จุดดั้งเดิม
-            textEl.style.left = `${startX}px`;
-            textEl.style.top = `${startY}px`;
-            container.appendChild(textEl);
-
-            // 2. ใช้ setTimeout เพื่อทำแอนิเมชันบินเข้ามาหาตำแหน่งรูปหัวใจตรงกลาง
-            setTimeout(() => {
-                textEl.style.opacity = '1';
-                // แปลงพิกัดผลลัพธ์เป็น "ระยะห่างทางตำแหน่ง (translate)" เพื่อสร้างความลื่นไหล
-                const moveX = targetPos.x - startX;
-                const moveY = targetPos.y - startY;
-                textEl.style.transform = `translate(${moveX}px, ${moveY}px)`;
-            }, 50); // ดีเลย์เล็กน้อยเพื่อให้เบราว์เซอร์รับรู้ตำแหน่งจุดเริ่มต้นก่อนขยับ
-        }
-
-        // ทยอยปล่อยคำออกมาทีละคำจากข้างๆ 
-        for (let i = 0; i < maxWords; i++) {
-            setTimeout(() => {
-                spawnWord(i);
-            }, i * 45); // ปรับความเร็วที่นี่ (ยิ่งค่าน้อย ยิ่งมาเร็วขึ้น)
-        }
-
-        // เมื่อหน้าจอเปลี่ยนขนาดจะรีเซ็ตใหม่เพื่อความแม่นยำ
+        // ถ้าย่อ/ขยายหน้าจอ ให้วาดใหม่เพื่อให้อยู่ตรงกลางเสมอ
+        let resizeTimer;
         window.addEventListener('resize', () => {
-            centerX = window.innerWidth / 2;
-            centerY = window.innerHeight / 2;
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(drawHeart, 200);
         });
     </script>
 </body>
