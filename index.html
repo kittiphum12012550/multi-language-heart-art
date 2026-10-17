@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Perfect Love Heart</title>
+    <title>Love Heart</title>
     <style>
         body {
-            background-color: #050505;
+            background-color: #050505; /* พื้นหลังสีดำ */
             margin: 0;
             overflow: hidden;
-            height: 100vh;
-            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
         }
         #heart-container {
             position: relative;
@@ -22,14 +22,16 @@
         }
         .text-word {
             position: absolute;
-            color: #ff3333;
-            text-shadow: 0 0 3px #ff0000;
-            opacity: 0; /* เริ่มต้นด้วยการโปร่งใส */
+            color: #ff3333; /* สีแดง */
+            text-shadow: 0 0 4px #ff0000; /* เรืองแสงนิดๆ แบบในรูป */
+            opacity: 0;
+            animation: fadeIn 1.5s forwards;
             white-space: nowrap;
-            font-weight: bold;
-            transition: opacity 1s ease-in-out; /* แอนิเมชันตอนค่อยๆ สว่างขึ้น */
             pointer-events: none;
-            transform: translateY(-50%); /* จัดให้อยู่กึ่งกลางบรรทัดพอดี */
+        }
+        /* แอนิเมชันให้ค่อยๆ สว่างขึ้นมา */
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
     </style>
 </head>
@@ -37,102 +39,64 @@
     <div id="heart-container"></div>
 
     <script>
+        // ชุดคำบอกรักภาษาต่างๆ แบบเดียวกับในภาพ
         const phrases = [
             "Ich liebe dich", "Ti amo", "愛してる", "Aku cinta kamu",
             "ฉันรักเธอ", "Te amo", "Je t'aime", "사랑해",
             "Jag älskar dig", "Я тебя люблю", "Σ' αγαπώ", "Anh yêu em",
-            "Ik hou van jou", "I love you", "Seni seviyorum", "Kocham cię"
+            "Ik hou van jou", "I love you", "Seni seviyorum", "Kocham cię",
+            "मैं तुमसे प्यार करता हूँ"
         ];
 
         const container = document.getElementById('heart-container');
+        let centerX = window.innerWidth / 2;
+        let centerY = window.innerHeight / 2;
         
-        function drawHeart() {
-            container.innerHTML = ''; // ล้างค่าเดิมเผื่อมีการรีเฟรช
-            
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            
-            const scale = 220; // ปรับขนาดของหัวใจตรงนี้
-            const rowHeight = 20; // ระยะห่างระหว่างบรรทัด (แกน Y)
-            const paddingX = 6; // ระยะห่างระหว่างคำ (แกน X)
-            
-            let delay = 0;
-            const delayStep = 30; // ความเร็วในการปรากฏทีละคำ (มิลลิวินาที)
+        // ปรับขนาดความกว้าง-สูงของรูปหัวใจ
+        const scale = 220; 
+        const totalTexts = 350; // จำนวนตัวหนังสือที่จะให้ถมจนเต็ม
 
-            // กำหนดขอบเขตการวาด (Bounding Box) ประมาณ -1.5 ถึง 1.5 ของสมการ
-            const boxSize = 3 * scale;
-            const startY = centerY - boxSize / 2;
-            const endY = centerY + boxSize / 2;
-            const startX = centerX - boxSize / 2;
-            const endX = centerX + boxSize / 2;
-
-            // สแกนพื้นที่จากบนลงล่าง (ทีละบรรทัด)
-            for (let sy = startY; sy < endY; sy += rowHeight) {
-                let sx = startX;
-                
-                // สแกนพื้นที่จากซ้ายไปขวา
-                while (sx < endX) {
-                    // แปลงพิกัดหน้าจอ (sx, sy) เป็นพิกัดสำหรับสมการคณิตศาสตร์ (mx, my)
-                    const mx = (sx - centerX) / scale;
-                    const my = -(sy - centerY) / scale; // ต้องติดลบเพราะแกน Y ของจอคอมพิวเตอร์กลับหัวกับกราฟคณิตศาสตร์
-
-                    // เช็คว่าพิกัดนี้อยู่ในสมการรูปหัวใจหรือไม่: (x² + y² - 1)³ - x²y³ ≤ 0
-                    if (Math.pow(mx * mx + my * my - 1, 3) - (mx * mx * Math.pow(my, 3)) <= 0) {
-                        
-                        // สุ่มคำ
-                        const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-                        
-                        // สร้าง Element เพื่อวัดความกว้างของคำก่อนนำไปวางจริง
-                        const el = document.createElement('div');
-                        el.className = 'text-word';
-                        el.innerText = phrase;
-                        
-                        // สุ่มขนาดฟอนต์ให้ดูมีมิติเล็กน้อย (12px ถึง 15px)
-                        const fontSize = 12 + Math.random() * 3;
-                        el.style.fontSize = `${fontSize}px`;
-                        
-                        // ซ่อนไว้ก่อนเพื่อใช้วัดขนาด
-                        el.style.visibility = 'hidden';
-                        document.body.appendChild(el);
-                        const wordWidth = el.offsetWidth;
-                        document.body.removeChild(el);
-                        
-                        // กำหนดตำแหน่งที่แน่นอน
-                        el.style.visibility = 'visible';
-                        el.style.left = `${sx}px`;
-                        el.style.top = `${sy}px`;
-                        
-                        // ใช้ setTimeout เพื่อสร้างเอฟเฟกต์ "ค่อยๆ เต็ม"
-                        setTimeout(() => {
-                            container.appendChild(el);
-                            // ให้เบราว์เซอร์รับรู้การสร้าง element ก่อน ค่อยสั่งเปลี่ยน opacity เป็น 1 เพื่อให้ transition ทำงาน
-                            requestAnimationFrame(() => {
-                                el.style.opacity = '1';
-                            });
-                        }, delay);
-                        
-                        delay += delayStep;
-                        
-                        // ขยับจุดตรวจจับไปทางขวา เท่ากับความกว้างของคำที่เพิ่งวาง + ระยะห่าง 
-                        // เพื่อให้คำต่อไปอยู่ต่อท้ายพอดี ไม่ทับกัน
-                        sx += wordWidth + paddingX;
-                    } else {
-                        // ถ้าไม่อยู่ในรูปหัวใจ ให้ขยับจุดตรวจจับไปทางขวาทีละนิดเพื่อหาขอบหัวใจ
-                        sx += 5;
-                    }
-                }
-            }
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
         }
 
-        // วาดหัวใจเมื่อเปิดหน้าเว็บ
-        drawHeart();
-
-        // ถ้าย่อ/ขยายหน้าจอ ให้วาดใหม่เพื่อให้อยู่ตรงกลางเสมอ
-        let resizeTimer;
+        // อัปเดตจุดศูนย์กลางหากมีการย่อขยายหน้าจอ
         window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(drawHeart, 200);
+            centerX = window.innerWidth / 2;
+            centerY = window.innerHeight / 2;
         });
+
+        // วนลูปสร้างตัวหนังสือ
+        for (let i = 0; i < totalTexts; i++) {
+            // ใช้ setTimeout เพื่อหน่วงเวลาให้ "ค่อยๆ เต็มเป็นรูปหัวใจ" ทีละคำ
+            setTimeout(() => {
+                let x, y;
+                // ใช้สมการคณิตศาสตร์เพื่อเช็คพื้นที่ด้านในของรูปหัวใจ (Heart Equation)
+                while (true) {
+                    x = random(-1.5, 1.5);
+                    let mathY = random(-1.5, 1.5);
+                    // สมการหัวใจ (x^2 + y^2 - 1)^3 - x^2 * y^3 <= 0
+                    if (Math.pow(x*x + mathY*mathY - 1, 3) - (x*x * Math.pow(mathY, 3)) <= 0) {
+                        y = -mathY; // กลับแกน Y สำหรับการแสดงผลบนหน้าจอคอมพิวเตอร์
+                        break;
+                    }
+                }
+
+                const textEl = document.createElement('div');
+                textEl.className = 'text-word';
+                textEl.innerText = phrases[Math.floor(Math.random() * phrases.length)];
+                
+                // คำนวณตำแหน่งพิกัด X, Y บนหน้าจอ
+                textEl.style.left = `${centerX + (x * scale)}px`;
+                textEl.style.top = `${centerY + (y * scale)}px`;
+                
+                // สุ่มขนาดฟอนต์ให้ดูมีมิติ
+                textEl.style.fontSize = `${random(10, 16)}px`;
+                textEl.style.transform = 'translate(-50%, -50%)';
+
+                container.appendChild(textEl);
+            }, i * 30); // ระยะเวลาหน่วงแต่ละคำ (30 มิลลิวินาที)
+        }
     </script>
 </body>
 </html>
